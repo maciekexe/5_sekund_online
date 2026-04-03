@@ -25,7 +25,6 @@ async function generateAIQuestion(category) {
     "Przyjaciele": "sytuacji z życia i relacji.",
     "Filmy": "kina i aktorów.",
     "Impreza": "zabawy, tańca i jedzenia.",
-    "Polska": "polskiej kultury i tradycji.",
     "Różne": "wiedzy ogólnej i absurdalnych pytań."
   };
   const theme = categoryPrompts[category] || "wszystkiego.";
@@ -190,22 +189,38 @@ io.on('connection', (socket) => {
     io.to(roomCode).emit('gameStateUpdate', room);
   });
 
--
-  socket.on('restartGame', ({ roomCode, sessionId }) => {
+
+socket.on('restartGame', ({ roomCode, sessionId }) => {
+    console.log("=== PRÓBA RESTARTU ===");
+    console.log("Otrzymany roomCode:", roomCode);
+    console.log("Otrzymany sessionId (klikającego):", sessionId);
+
     const room = rooms.get(roomCode);
-    if (!room || room.hostSessionId !== sessionId) return;
+    if (!room) {
+      console.log("Błąd: Nie znaleziono pokoju o takim kodzie!");
+      return;
+    }
+    
+    console.log("Host zapisany w pokoju to:", room.hostSessionId);
+    
+    if (room.hostSessionId !== sessionId) {
+      console.log("Błąd: Osoba klikająca nie jest Hostem na serwerze!");
+      return;
+    }
 
   
-    room.players.forEach(p => p.position = 0);
+    room.players = room.players.map(p => ({ ...p, position: 0 }));
     room.winnerId = null;
     room.isPlaying = false;
     room.showVoting = false;
     room.currentPhase = "";
     room.currentQuestion = "Czekaj na start Hosta...";
     
+    if (room.players.length > 0) {
+      room.currentTurnId = room.players[0].id;
+    }
 
-    if (room.players.length > 0) room.currentTurnId = room.players[0].id;
-
+    console.log("Sukces! Gra zresetowana, wysyłam nowy stan do graczy.");
     io.to(roomCode).emit('gameStateUpdate', room);
   });
 
@@ -218,7 +233,7 @@ io.on('connection', (socket) => {
     room.players = room.players.filter(p => p.sessionId !== sessionId);
 
     if (room.players.length === 0) {
-      rooms.delete(roomCode); // Usuwamy pokój, jeśli był pusty
+      rooms.delete(roomCode); 
     } else {
       
       if (room.hostSessionId === sessionId) {
