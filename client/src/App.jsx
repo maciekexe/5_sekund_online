@@ -10,7 +10,29 @@ const socket = io('http://localhost:3001');
 function App() {
   const [hasJoined, setHasJoined] = useState(false);
   const [gameState, setGameState] = useState(null);
-  
+
+  const [waitingForRestart, setWaitingForRestart] = useState(false);
+
+  useEffect(() => {
+    if (gameState && !gameState.winnerId) {
+      setWaitingForRestart(false);
+    }
+  }, [gameState?.winnerId]);
+
+  const handleRestart = () => {
+    if (gameState.hostSessionId === sessionId) {
+      socket.emit('restartGame', { roomCode: gameState.code, sessionId });
+    } else {
+      setWaitingForRestart(true);
+    }
+  };
+
+  const handleLeaveRoom = () => {
+    socket.emit('leaveRoom', { roomCode: gameState.code, sessionId });
+    setHasJoined(false);
+    setGameState(null);
+    localStorage.removeItem('5sek_lastRoom'); 
+  }
   const [sessionId] = useState(() => {
     let sid = localStorage.getItem('5sek_sessionId');
     if (!sid) {
@@ -20,25 +42,42 @@ function App() {
     return sid;
   });
 
-  useEffect(() => {
+useEffect(() => {
+
     socket.on('roomJoined', (data) => { 
       setGameState(data); 
       setHasJoined(true); 
       localStorage.setItem('5sek_lastRoom', data.code);
     });
     
-    socket.on('gameStateUpdate', (data) => setGameState(data));
-    socket.on('error', (msg) => { alert(msg); setHasJoined(false); });
 
-    socket.on('playSound', (type) => {
-      console.log(`[AUDIO]: Odtwórz -> ${type}.mp3`);
+    socket.on('gameStateUpdate', (data) => setGameState(data));
+
+    socket.on('error', (msg) => { 
+      alert(msg); 
+      setHasJoined(false); 
     });
 
+
+    // socket.on('playSound', (type) => {
+    //   console.log(`[AUDIO]: Odtwórz -> ${type}.mp3`);
+    // });
+
+  
+    socket.on('kickedOut', () => {
+      alert('Zostałeś wyrzucony z pokoju przez Hosta!');
+      setHasJoined(false);
+      setGameState(null);
+      localStorage.removeItem('5sek_lastRoom');
+    });
+
+  
     return () => { 
       socket.off('roomJoined'); 
       socket.off('gameStateUpdate'); 
       socket.off('error'); 
       socket.off('playSound');
+      socket.off('kickedOut');
     };
   }, []);
 
@@ -58,13 +97,33 @@ function App() {
           PIN POKOJU: <span style={{ color: '#6c5ce7' }}>{gameState.code}</span> 📋
         </h1>
         
-        {winner && (
+       {winner && (
           <div className="winner-overlay">
             <div className="winner-card">
               <span className="winner-icon">🏆</span>
               <h1>GRATULACJE!</h1>
               <h2>Wygrywa <span style={{ color: winner?.color }}>{winner?.name}</span></h2>
-              {isHost && <p style={{marginTop: '20px'}}>Załóż nowy pokój, by zagrać ponownie!</p>}
+              
+              <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', marginTop: '30px', flexWrap: 'wrap' }}>
+                {isHost ? (
+                  <button className="premium-btn" onClick={handleRestart} style={{ background: '#2ed573' }}>
+                    🔄 ZAGRAJ PONOWNIE
+                  </button>
+                ) : (
+                  !waitingForRestart ? (
+                    <button className="premium-btn" onClick={handleRestart} style={{ background: '#2ed573' }}>
+                      🔄 CHCĘ GRAĆ DALEJ
+                    </button>
+                  ) : (
+                    <p style={{ fontWeight: 'bold', color: '#f1c40f', display: 'flex', alignItems: 'center' }}>
+                      ⏳ Oczekiwanie na Hosta...
+                    </p>
+                  )
+                )}
+                <button className="premium-btn" onClick={handleLeaveRoom} style={{ background: '#ff4757' }}>
+                  🚪 WYJDŹ DO MENU
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -72,7 +131,7 @@ function App() {
         <div className={`question-panel phase-${gameState.currentPhase}`}>
           {isHost && !gameState.isPlaying && !gameState.showVoting && (
             <div className="category-btns">
-              {['Bajki', 'Przyjaciele', 'Filmy', 'Impreza', 'Polska', 'Różne'].map(cat => (
+              {['Filmy', 'Przyjaciele', 'Impreza', 'Wszystko', '🌶️ 18+', '🌍 Świat'].map(cat => (
                 <button key={cat} onClick={() => socket.emit('startTurn', { roomCode: gameState.code, category: cat })} className="cat-btn">
                   {cat}
                 </button>

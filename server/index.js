@@ -21,12 +21,12 @@ function generateRoomCode() {
 
 async function generateAIQuestion(category) {
   const categoryPrompts = {
-    "Bajki": "postaci z bajek i animacji.",
-    "Przyjaciele": "sytuacji z życia i relacji.",
-    "Filmy": "kina i aktorów.",
-    "Impreza": "zabawy, tańca i jedzenia.",
-    "Polska": "polskiej kultury i tradycji.",
-    "Różne": "wiedzy ogólnej i absurdalnych pytań."
+    "Filmy": "postacie z bajek i animacji oraz filmów.",
+    "Przyjaciele": "sytuacje z życia i relacji.",
+    "Impreza": "zabawy, tańce, jedzenie.",
+    "Wszystko": "mieszanka wszystkiego",
+    "🌶️ 18+": "odważnych pytań i pikantnych tematów.",
+    "🌍 Świat": "podróży, geografii i marek."
   };
   const theme = categoryPrompts[category] || "wszystkiego.";
   try {
@@ -143,11 +143,18 @@ io.on('connection', (socket) => {
   socket.on('startTurn', ({ roomCode, category }) => startTurnLogic(roomCode, category));
   socket.on('skipQuestion', ({ roomCode }) => startTurnLogic(roomCode));
 
+
   socket.on('kickPlayer', ({ roomCode, targetSessionId }) => {
     const room = rooms.get(roomCode);
     if (!room) return;
+
+    
+    const playerToKick = room.players.find(p => p.sessionId === targetSessionId);
+
+    
     room.players = room.players.filter(p => p.sessionId !== targetSessionId);
     
+   
     const currentPlayerExists = room.players.find(p => p.id === room.currentTurnId);
     if (!currentPlayerExists && room.players.length > 0) {
       room.currentTurnId = room.players[0].id;
@@ -155,6 +162,11 @@ io.on('connection', (socket) => {
       room.showVoting = false;
       if (room.timer) clearInterval(room.timer);
     }
+
+    if (playerToKick) {
+      io.to(playerToKick.id).emit('kickedOut');
+    }
+
     io.to(roomCode).emit('gameStateUpdate', room);
   });
 
@@ -189,6 +201,72 @@ io.on('connection', (socket) => {
     }
     io.to(roomCode).emit('gameStateUpdate', room);
   });
+
+
+socket.on('restartGame', ({ roomCode, sessionId }) => {
+    console.log("=== PRÓBA RESTARTU ===");
+    console.log("Otrzymany roomCode:", roomCode);
+    console.log("Otrzymany sessionId (klikającego):", sessionId);
+
+    const room = rooms.get(roomCode);
+    if (!room) {
+      console.log("Błąd: Nie znaleziono pokoju o takim kodzie!");
+      return;
+    }
+    
+    console.log("Host zapisany w pokoju to:", room.hostSessionId);
+    
+    if (room.hostSessionId !== sessionId) {
+      console.log("Błąd: Osoba klikająca nie jest Hostem na serwerze!");
+      return;
+    }
+
+  
+    room.players = room.players.map(p => ({ ...p, position: 0 }));
+    room.winnerId = null;
+    room.isPlaying = false;
+    room.showVoting = false;
+    room.currentPhase = "";
+    room.currentQuestion = "Czekaj na start Hosta...";
+    
+    if (room.players.length > 0) {
+      room.currentTurnId = room.players[0].id;
+    }
+
+    console.log("Sukces! Gra zresetowana, wysyłam nowy stan do graczy.");
+    io.to(roomCode).emit('gameStateUpdate', room);
+  });
+
+
+  socket.on('leaveRoom', ({ roomCode, sessionId }) => {
+    const room = rooms.get(roomCode);
+    if (!room) return;
+
+  
+    room.players = room.players.filter(p => p.sessionId !== sessionId);
+
+    if (room.players.length === 0) {
+      rooms.delete(roomCode); 
+    } else {
+      
+      if (room.hostSessionId === sessionId) {
+        room.hostSessionId = room.players[0].sessionId;
+      }
+     
+      const currentPlayerExists = room.players.find(p => p.id === room.currentTurnId);
+      if (!currentPlayerExists) {
+        room.currentTurnId = room.players[0].id;
+        room.isPlaying = false;
+        room.showVoting = false;
+        if (room.timer) clearInterval(room.timer);
+      }
+      io.to(roomCode).emit('gameStateUpdate', room);
+    }
+    socket.leave(roomCode);
+  });
+
+
+
 
   socket.on('disconnect', () => {
     rooms.forEach((room, code) => {
