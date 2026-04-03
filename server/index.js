@@ -21,11 +21,12 @@ function generateRoomCode() {
 
 async function generateAIQuestion(category) {
   const categoryPrompts = {
-    "Bajki": "postaci z bajek i animacji.",
-    "Przyjaciele": "sytuacji z życia i relacji.",
-    "Filmy": "kina i aktorów.",
-    "Impreza": "zabawy, tańca i jedzenia.",
-    "Różne": "wiedzy ogólnej i absurdalnych pytań."
+    "Filmy": "postacie z bajek i animacji oraz filmów.",
+    "Przyjaciele": "sytuacje z życia i relacji.",
+    "Impreza": "zabawy, tańce, jedzenie.",
+    "Wszystko": "mieszanka wszystkiego",
+    "🌶️ 18+": "odważnych pytań i pikantnych tematów.",
+    "🌍 Świat": "podróży, geografii i marek."
   };
   const theme = categoryPrompts[category] || "wszystkiego.";
   try {

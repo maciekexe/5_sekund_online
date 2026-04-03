@@ -114,7 +114,7 @@ function App() {
         <div className={`question-panel phase-${gameState.currentPhase}`}>
           {isHost && !gameState.isPlaying && !gameState.showVoting && (
             <div className="category-btns">
-              {['Bajki', 'Przyjaciele', 'Filmy', 'Impreza', 'Polska', 'Różne'].map(cat => (
+              {['Filmy', 'Przyjaciele', 'Impreza', 'Wszystko', '🌶️ 18+', '🌍 Świat'].map(cat => (
                 <button key={cat} onClick={() => socket.emit('startTurn', { roomCode: gameState.code, category: cat })} className="cat-btn">
                   {cat}
                 </button>
