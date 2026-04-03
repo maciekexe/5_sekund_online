@@ -1,0 +1,48 @@
+.board-box { 
+    display: grid; 
+    grid-template-columns: repeat(5, 85px); 
+    gap: 15px; 
+    background: rgba(255,255,255,0.02); 
+    padding: 20px; 
+    border-radius: 25px; 
+    border: 1px solid rgba(255,255,255,0.05); 
+}
+
+.tile { 
+    width: 85px; 
+    height: 85px; 
+    background: rgba(255,255,255,0.05); 
+    border-radius: 15px; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    font-weight: 900; 
+    color: rgba(255,255,255,0.2); 
+}
+
+.tile.start { 
+    background: #3a7bd5; 
+    color: #fff; 
+    box-shadow: 0 0 20px #3a7bd544; 
+}
+
+.tile.finish { 
+    background: #f6d365; 
+    color: #fff; 
+    box-shadow: 0 0 20px #f6d36544; 
+}
+
+.pawn { 
+    width: 35px; 
+    height: 35px; 
+    border-radius: 50%; 
+    color: white; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    font-weight: 900; 
+    position: relative; 
+    z-index: 10; 
+    margin: auto; 
+    border: 2px solid white;
+}

@@ -1,121 +1,113 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useState, useEffect } from 'react';
+import { io } from 'socket.io-client';
+import GameBoard from './GameBoard'; 
+import PlayerList from './PlayerList';
+import Lobby from './Lobby';
+import './App.css';
+
+const socket = io('http://localhost:3001');
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [hasJoined, setHasJoined] = useState(false);
+  const [gameState, setGameState] = useState(null);
+  
+  const [sessionId] = useState(() => {
+    let sid = localStorage.getItem('5sek_sessionId');
+    if (!sid) {
+      sid = Math.random().toString(36).substring(2, 10);
+      localStorage.setItem('5sek_sessionId', sid);
+    }
+    return sid;
+  });
+
+  useEffect(() => {
+    socket.on('roomJoined', (data) => { 
+      setGameState(data); 
+      setHasJoined(true); 
+      localStorage.setItem('5sek_lastRoom', data.code);
+    });
+    
+    socket.on('gameStateUpdate', (data) => setGameState(data));
+    socket.on('error', (msg) => { alert(msg); setHasJoined(false); });
+
+    socket.on('playSound', (type) => {
+      console.log(`[AUDIO]: Odtwórz -> ${type}.mp3`);
+    });
+
+    return () => { 
+      socket.off('roomJoined'); 
+      socket.off('gameStateUpdate'); 
+      socket.off('error'); 
+      socket.off('playSound');
+    };
+  }, []);
+
+  if (!hasJoined) return <Lobby sessionId={sessionId} onJoin={(d) => {
+    if (d.type === 'create') socket.emit('createRoom', d);
+    else socket.emit('joinRoom', d);
+  }} />;
+
+  const isHost = gameState.hostSessionId === sessionId;
+  const isMyTurn = socket.id === gameState.currentTurnId;
+  const winner = gameState.players.find(p => p.id === gameState.winnerId);
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div className="main-wrapper">
+      <div className="game-area">
+        <h1 className="game-logo" onClick={() => {navigator.clipboard.writeText(gameState.code); alert('Skopiowano!');}} style={{ cursor: 'pointer' }}>
+          PIN POKOJU: <span style={{ color: '#6c5ce7' }}>{gameState.code}</span> 📋
+        </h1>
+        
+        {winner && (
+          <div className="winner-overlay">
+            <div className="winner-card">
+              <span className="winner-icon">🏆</span>
+              <h1>GRATULACJE!</h1>
+              <h2>Wygrywa <span style={{ color: winner?.color }}>{winner?.name}</span></h2>
+              {isHost && <p style={{marginTop: '20px'}}>Załóż nowy pokój, by zagrać ponownie!</p>}
+            </div>
+          </div>
+        )}
 
-      <div className="ticks"></div>
+        <div className={`question-panel phase-${gameState.currentPhase}`}>
+          {isHost && !gameState.isPlaying && !gameState.showVoting && (
+            <div className="category-btns">
+              {['Bajki', 'Przyjaciele', 'Filmy', 'Impreza', 'Polska', 'Różne'].map(cat => (
+                <button key={cat} onClick={() => socket.emit('startTurn', { roomCode: gameState.code, category: cat })} className="cat-btn">
+                  {cat}
+                </button>
+              ))}
+            </div>
+          )}
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+          {isHost && gameState.isPlaying && (
+            <button className="premium-btn" style={{ background: '#ff4757', padding: '10px', fontSize: '0.8rem' }} 
+              onClick={() => socket.emit('skipQuestion', { roomCode: gameState.code })}>
+              ⏭ POMIŃ PYTANIE
+            </button>
+          )}
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+          <div className="timer-badge">{gameState.timeLeft}</div>
+          <h2 className="question-text">{gameState.currentQuestion}</h2>
+          
+          {gameState.showVoting && !isMyTurn && !gameState.votes[socket.id] && (
+            <div className="voting-section">
+              <p>Oceń gracza:</p>
+              <div className="vote-btns">
+                <button className="vote-btn yes" onClick={() => socket.emit('submitVote', { roomCode: gameState.code, vote: 'success' })}>ZALICZONE</button>
+                <button className="vote-btn no" onClick={() => socket.emit('submitVote', { roomCode: gameState.code, vote: 'fail' })}>SKUCHA</button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="middle-section">
+          <PlayerList players={gameState.players} currentTurnId={gameState.currentTurnId} votes={gameState.votes} isHost={isHost} roomCode={gameState.code} socket={socket} />
+          <GameBoard players={gameState.players} targetScore={gameState.targetScore} />
+        </div>
+      </div>
+    </div>
+  );
 }
 
-export default App
+export default App;
