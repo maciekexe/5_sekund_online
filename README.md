@@ -12,7 +12,7 @@ Celem projektu jest przeniesienie dynamiki gry "5 sekund" do przeglądarki. Grac
 * **Czas Rzeczywisty:** Synchronizacja stanu gry, odliczania i ruchów graczy (Socket.io).
 * **Wirtualna Plansza:** Interaktywna plansza z pionkami przesuwanymi po akceptacji odpowiedzi.
 * **System Głosowania:** Weryfikacja odpowiedzi przez pozostałych uczestników gry.
-* **Baza Pytań:** Szeroka pula pytań z różnych kategorii.
+* **Baza Pytań:** Generowane przez AI.
 
 ## 🛠️ Technologie (Tech Stack)
 
@@ -20,10 +20,6 @@ Projekt jest budowany z użyciem następujących technologii:
 * **Frontend:** HTML5, CSS3 (Grid/Flexbox), JavaScript (Vanilla / React.js)
 * **Backend:** Node.js, Express.js
 * **Komunikacja:** Socket.io (WebSockets)
-* **Baza Danych:** JSON (początkowo) / MongoDB (docelowo)
+* **Baza Danych:** GroqCloud
 
-## 🚀 Instalacja i Uruchomienie (Dla Developerów)
 
-1. Sklonuj repozytorium:
-   ```bash
-   git clone [https://github.com/TWÓJ-NICK/5-sekund-online.git](https://github.com/TWÓJ-NICK/5-sekund-online.git)
