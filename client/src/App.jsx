@@ -5,7 +5,9 @@ import PlayerList from './PlayerList';
 import Lobby from './Lobby';
 import './App.css';
 
-const socket = io('http://localhost:3001');
+
+const backendUrl = import.meta.env.PROD ? 'https://five-sekund-serwer.onrender.com' : 'http://localhost:3001';
+const socket = io(backendUrl);
 
 function App() {
   const [hasJoined, setHasJoined] = useState(false);
