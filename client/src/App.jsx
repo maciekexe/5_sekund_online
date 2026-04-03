@@ -42,25 +42,42 @@ function App() {
     return sid;
   });
 
-  useEffect(() => {
+useEffect(() => {
+
     socket.on('roomJoined', (data) => { 
       setGameState(data); 
       setHasJoined(true); 
       localStorage.setItem('5sek_lastRoom', data.code);
     });
     
-    socket.on('gameStateUpdate', (data) => setGameState(data));
-    socket.on('error', (msg) => { alert(msg); setHasJoined(false); });
 
-    socket.on('playSound', (type) => {
-      console.log(`[AUDIO]: Odtwórz -> ${type}.mp3`);
+    socket.on('gameStateUpdate', (data) => setGameState(data));
+
+    socket.on('error', (msg) => { 
+      alert(msg); 
+      setHasJoined(false); 
     });
 
+
+    // socket.on('playSound', (type) => {
+    //   console.log(`[AUDIO]: Odtwórz -> ${type}.mp3`);
+    // });
+
+  
+    socket.on('kickedOut', () => {
+      alert('Zostałeś wyrzucony z pokoju przez Hosta!');
+      setHasJoined(false);
+      setGameState(null);
+      localStorage.removeItem('5sek_lastRoom');
+    });
+
+  
     return () => { 
       socket.off('roomJoined'); 
       socket.off('gameStateUpdate'); 
       socket.off('error'); 
       socket.off('playSound');
+      socket.off('kickedOut');
     };
   }, []);
 

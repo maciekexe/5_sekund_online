@@ -143,11 +143,18 @@ io.on('connection', (socket) => {
   socket.on('startTurn', ({ roomCode, category }) => startTurnLogic(roomCode, category));
   socket.on('skipQuestion', ({ roomCode }) => startTurnLogic(roomCode));
 
+
   socket.on('kickPlayer', ({ roomCode, targetSessionId }) => {
     const room = rooms.get(roomCode);
     if (!room) return;
+
+    
+    const playerToKick = room.players.find(p => p.sessionId === targetSessionId);
+
+    
     room.players = room.players.filter(p => p.sessionId !== targetSessionId);
     
+   
     const currentPlayerExists = room.players.find(p => p.id === room.currentTurnId);
     if (!currentPlayerExists && room.players.length > 0) {
       room.currentTurnId = room.players[0].id;
@@ -155,6 +162,11 @@ io.on('connection', (socket) => {
       room.showVoting = false;
       if (room.timer) clearInterval(room.timer);
     }
+
+    if (playerToKick) {
+      io.to(playerToKick.id).emit('kickedOut');
+    }
+
     io.to(roomCode).emit('gameStateUpdate', room);
   });
 
