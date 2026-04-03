@@ -89,42 +89,54 @@ io.on('connection', (socket) => {
     const room = rooms.get(roomCode);
     if (!room) return;
 
+  
+    if (room.timer) clearInterval(room.timer);
+
+   
     if (category) room.currentCategory = category;
     room.currentQuestion = "🤖 AI generuje pytanie...";
     room.currentPhase = "";
     room.isPlaying = true;
-    io.to(roomCode).emit('gameStateUpdate', room);
-
-    room.currentQuestion = await generateAIQuestion(room.currentCategory);
-    room.timeLeft = 5;
-    room.currentPhase = "reading";
-    room.showVoting = false;
+    room.showVoting = false; 
     room.votes = {};
-    
-    io.to(roomCode).emit('playSound', 'start_reading');
     io.to(roomCode).emit('gameStateUpdate', room);
 
-    if (room.timer) clearInterval(room.timer);
-    room.timer = setInterval(() => {
-      room.timeLeft -= 1;
+  
+    const newQuestion = await generateAIQuestion(room.currentCategory);
+
+    
+    const roomCheck = rooms.get(roomCode);
+    if (!roomCheck) return;
+
+ 
+    roomCheck.currentQuestion = newQuestion;
+    roomCheck.timeLeft = 3;
+    roomCheck.currentPhase = "reading";
+
+    io.to(roomCode).emit('playSound', 'start_reading');
+    io.to(roomCode).emit('gameStateUpdate', roomCheck);
+
+
+    roomCheck.timer = setInterval(() => {
+      roomCheck.timeLeft -= 1;
       
-      if (room.timeLeft <= 0 && room.currentPhase === "reading") {
-        room.timeLeft = 5;
-        room.currentPhase = "answering";
+      if (roomCheck.timeLeft <= 0 && roomCheck.currentPhase === "reading") {
+        roomCheck.timeLeft = 5;
+        roomCheck.currentPhase = "answering";
         io.to(roomCode).emit('playSound', 'start_answering');
       } 
-      else if (room.timeLeft <= 0 && room.currentPhase === "answering") {
-        clearInterval(room.timer);
-        room.isPlaying = false;
-        room.currentPhase = "voting";
-        room.showVoting = true;
+      else if (roomCheck.timeLeft <= 0 && roomCheck.currentPhase === "answering") {
+        clearInterval(roomCheck.timer);
+        roomCheck.isPlaying = false;
+        roomCheck.currentPhase = "voting";
+        roomCheck.showVoting = true;
         io.to(roomCode).emit('playSound', 'buzzer');
       }
-      else if (room.timeLeft <= 3 && room.currentPhase === "answering") {
+      else if (roomCheck.timeLeft <= 3 && roomCheck.currentPhase === "answering") {
         io.to(roomCode).emit('playSound', 'tick'); 
       }
       
-      io.to(roomCode).emit('gameStateUpdate', room);
+      io.to(roomCode).emit('gameStateUpdate', roomCheck);
     }, 1000);
   };
 
