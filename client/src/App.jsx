@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 import GameBoard from './GameBoard'; 
-// import PlayerList from './PlayerList';
+import PlayerList from './PlayerList';
 import Lobby from './Lobby';
 import './App.css';
 
