@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 // import GameBoard from './GameBoard'; 
 // import PlayerList from './PlayerList';
-// import Lobby from './Lobby';
+import Lobby from './Lobby';
 import './App.css';
 
 const socket = io('http://localhost:3001');
