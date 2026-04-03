@@ -190,6 +190,56 @@ io.on('connection', (socket) => {
     io.to(roomCode).emit('gameStateUpdate', room);
   });
 
+-
+  socket.on('restartGame', ({ roomCode, sessionId }) => {
+    const room = rooms.get(roomCode);
+    if (!room || room.hostSessionId !== sessionId) return;
+
+  
+    room.players.forEach(p => p.position = 0);
+    room.winnerId = null;
+    room.isPlaying = false;
+    room.showVoting = false;
+    room.currentPhase = "";
+    room.currentQuestion = "Czekaj na start Hosta...";
+    
+
+    if (room.players.length > 0) room.currentTurnId = room.players[0].id;
+
+    io.to(roomCode).emit('gameStateUpdate', room);
+  });
+
+
+  socket.on('leaveRoom', ({ roomCode, sessionId }) => {
+    const room = rooms.get(roomCode);
+    if (!room) return;
+
+  
+    room.players = room.players.filter(p => p.sessionId !== sessionId);
+
+    if (room.players.length === 0) {
+      rooms.delete(roomCode); // Usuwamy pokój, jeśli był pusty
+    } else {
+      
+      if (room.hostSessionId === sessionId) {
+        room.hostSessionId = room.players[0].sessionId;
+      }
+     
+      const currentPlayerExists = room.players.find(p => p.id === room.currentTurnId);
+      if (!currentPlayerExists) {
+        room.currentTurnId = room.players[0].id;
+        room.isPlaying = false;
+        room.showVoting = false;
+        if (room.timer) clearInterval(room.timer);
+      }
+      io.to(roomCode).emit('gameStateUpdate', room);
+    }
+    socket.leave(roomCode);
+  });
+
+
+
+
   socket.on('disconnect', () => {
     rooms.forEach((room, code) => {
       const disconnectedPlayer = room.players.find(p => p.id === socket.id);

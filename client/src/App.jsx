@@ -10,7 +10,29 @@ const socket = io('http://localhost:3001');
 function App() {
   const [hasJoined, setHasJoined] = useState(false);
   const [gameState, setGameState] = useState(null);
-  
+
+  const [waitingForRestart, setWaitingForRestart] = useState(false);
+
+  useEffect(() => {
+    if (gameState && !gameState.winnerId) {
+      setWaitingForRestart(false);
+    }
+  }, [gameState?.winnerId]);
+
+  const handleRestart = () => {
+    if (gameState.hostSessionId === sessionId) {
+      socket.emit('restartGame', { roomCode: gameState.code, sessionId });
+    } else {
+      setWaitingForRestart(true);
+    }
+  };
+
+  const handleLeaveRoom = () => {
+    socket.emit('leaveRoom', { roomCode: gameState.code, sessionId });
+    setHasJoined(false);
+    setGameState(null);
+    localStorage.removeItem('5sek_lastRoom'); 
+  }
   const [sessionId] = useState(() => {
     let sid = localStorage.getItem('5sek_sessionId');
     if (!sid) {
@@ -58,13 +80,33 @@ function App() {
           PIN POKOJU: <span style={{ color: '#6c5ce7' }}>{gameState.code}</span> 📋
         </h1>
         
-        {winner && (
+       {winner && (
           <div className="winner-overlay">
             <div className="winner-card">
               <span className="winner-icon">🏆</span>
               <h1>GRATULACJE!</h1>
               <h2>Wygrywa <span style={{ color: winner?.color }}>{winner?.name}</span></h2>
-              {isHost && <p style={{marginTop: '20px'}}>Załóż nowy pokój, by zagrać ponownie!</p>}
+              
+              <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', marginTop: '30px', flexWrap: 'wrap' }}>
+                {isHost ? (
+                  <button className="premium-btn" onClick={handleRestart} style={{ background: '#2ed573' }}>
+                    🔄 ZAGRAJ PONOWNIE
+                  </button>
+                ) : (
+                  !waitingForRestart ? (
+                    <button className="premium-btn" onClick={handleRestart} style={{ background: '#2ed573' }}>
+                      🔄 CHCĘ GRAĆ DALEJ
+                    </button>
+                  ) : (
+                    <p style={{ fontWeight: 'bold', color: '#f1c40f', display: 'flex', alignItems: 'center' }}>
+                      ⏳ Oczekiwanie na Hosta...
+                    </p>
+                  )
+                )}
+                <button className="premium-btn" onClick={handleLeaveRoom} style={{ background: '#ff4757' }}>
+                  🚪 WYJDŹ DO MENU
+                </button>
+              </div>
             </div>
           </div>
         )}
