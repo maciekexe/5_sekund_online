@@ -3,6 +3,7 @@ import { io } from 'socket.io-client';
 import GameBoard from './GameBoard'; 
 import PlayerList from './PlayerList';
 import Lobby from './Lobby';
+import { Toaster, toast } from 'react-hot-toast';
 import './App.css';
 
 
@@ -56,7 +57,7 @@ useEffect(() => {
     socket.on('gameStateUpdate', (data) => setGameState(data));
 
     socket.on('error', (msg) => { 
-      alert(msg); 
+      toast.error(msg); 
       setHasJoined(false); 
     });
 
@@ -67,7 +68,7 @@ useEffect(() => {
 
   
     socket.on('kickedOut', () => {
-      alert('Zostałeś wyrzucony z pokoju przez Hosta!');
+      toast.error('Zostałeś wyrzucony z pokoju przez Hosta!');
       setHasJoined(false);
       setGameState(null);
       localStorage.removeItem('5sek_lastRoom');
@@ -94,8 +95,9 @@ useEffect(() => {
 
   return (
     <div className="main-wrapper">
+      <Toaster position="top-center" />
       <div className="game-area">
-        <h1 className="game-logo" onClick={() => {navigator.clipboard.writeText(gameState.code); alert('Skopiowano!');}} style={{ cursor: 'pointer' }}>
+        <h1 className="game-logo" onClick={() => {navigator.clipboard.writeText(gameState.code); toast.success('Skopiowano PIN pokoju!');}} style={{ cursor: 'pointer' }}>
           PIN POKOJU: <span style={{ color: '#6c5ce7' }}>{gameState.code}</span> 📋
         </h1>
         
@@ -148,7 +150,7 @@ useEffect(() => {
             </button>
           )}
 
-          <div className="timer-badge">{gameState.timeLeft}</div>
+          <div className={`timer-badge ${gameState.timeLeft <= 3 ? 'timer-danger' : ''}`}>{gameState.timeLeft}</div>
           <h2 className="question-text">{gameState.currentQuestion}</h2>
           
           {gameState.showVoting && !isMyTurn && !gameState.votes[socket.id] && (
@@ -163,7 +165,7 @@ useEffect(() => {
         </div>
 
         <div className="middle-section">
-          <PlayerList players={gameState.players} currentTurnId={gameState.currentTurnId} votes={gameState.votes} isHost={isHost} roomCode={gameState.code} socket={socket} />
+          <PlayerList players={gameState.players} currentTurnId={gameState.currentTurnId} votes={gameState.votes} showVoting={gameState.showVoting} isHost={isHost} roomCode={gameState.code} socket={socket} />
           <GameBoard players={gameState.players} targetScore={gameState.targetScore} />
         </div>
       </div>

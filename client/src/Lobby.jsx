@@ -31,7 +31,7 @@ const Lobby = ({ onJoin, sessionId }) => {
     <div className="lobby-container">
       <button onClick={() => setMode('menu')} style={{ background: 'none', color: '#aaa', border: 'none', cursor: 'pointer', marginBottom: '20px' }}>← Wróć do menu</button>
       <form onSubmit={handleSubmit}>
-        <input type="text" placeholder="Twój Nick..." value={name} onChange={(e) => setName(e.target.value)} required style={{ width: '100%', padding: '15px', borderRadius: '10px', border: 'none', marginBottom: '15px' }} />
+        <input type="text" placeholder="Twój Nick..." value={name} onChange={(e) => setName(e.target.value)} maxLength={15} required style={{ width: '100%', padding: '15px', borderRadius: '10px', border: 'none', marginBottom: '15px' }} />
         {mode === 'join' && <input type="text" placeholder="KOD PIN (np. 1234)" value={code} onChange={(e) => setCode(e.target.value)} required style={{ width: '100%', padding: '15px', borderRadius: '10px', border: 'none', marginBottom: '15px', textAlign: 'center', fontSize: '1.2rem', fontWeight: 'bold' }} />}
         {mode === 'create' && (
           <div style={{ marginBottom: '20px' }}>

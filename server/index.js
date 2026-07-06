@@ -4,6 +4,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const Groq = require('groq-sdk');
+const { z } = require('zod');
 
 const app = express();
 app.use(cors());
@@ -40,12 +41,28 @@ async function generateAIQuestion(category) {
     });
     return completion.choices[0]?.message?.content;
   } catch (e) { 
-    return "Wymień 3 polskie miasta."; 
+    const fallbackQuestions = [
+      "Wymień 3 marki samochodów.", "Wymień 3 popularne sporty.",
+      "Wymień 3 gatunki filmowe.", "Wymień 3 zwierzęta domowe.",
+      "Wymień 3 polskie miasta.", "Wymień 3 owoce cytrusowe.",
+      "Wymień 3 kraje w Europie.", "Wymień 3 rodzaje pizzy."
+    ];
+    return fallbackQuestions[Math.floor(Math.random() * fallbackQuestions.length)];
   }
 }
 
+const playerSchema = z.object({
+  name: z.string().min(1).max(15),
+  color: z.string().regex(/^#[0-9A-F]{6}$/i).or(z.string().min(1)) // basic validation
+});
+
 io.on('connection', (socket) => {
   socket.on('createRoom', ({ playerData, targetScore, sessionId }) => {
+    try {
+      playerSchema.parse(playerData);
+    } catch(e) {
+      return socket.emit('error', 'Nieprawidłowe dane gracza.');
+    }
     const code = generateRoomCode();
     socket.join(code);
     const roomState = {
@@ -68,6 +85,11 @@ io.on('connection', (socket) => {
   });
 
   socket.on('joinRoom', ({ code, playerData, sessionId }) => {
+    try {
+      playerSchema.parse(playerData);
+    } catch(e) {
+      return socket.emit('error', 'Nieprawidłowe dane gracza.');
+    }
     const room = rooms.get(code);
     if (!room) return socket.emit('error', 'Pokój nie istnieje!');
 
@@ -140,13 +162,23 @@ io.on('connection', (socket) => {
     }, 1000);
   };
 
-  socket.on('startTurn', ({ roomCode, category }) => startTurnLogic(roomCode, category));
-  socket.on('skipQuestion', ({ roomCode }) => startTurnLogic(roomCode));
+  socket.on('startTurn', ({ roomCode, category }) => {
+    const room = rooms.get(roomCode);
+    if (room && room.players.find(p => p.id === socket.id)?.sessionId === room.hostSessionId) {
+      startTurnLogic(roomCode, category);
+    }
+  });
+  socket.on('skipQuestion', ({ roomCode }) => {
+    const room = rooms.get(roomCode);
+    if (room && room.players.find(p => p.id === socket.id)?.sessionId === room.hostSessionId) {
+      startTurnLogic(roomCode);
+    }
+  });
 
 
   socket.on('kickPlayer', ({ roomCode, targetSessionId }) => {
     const room = rooms.get(roomCode);
-    if (!room) return;
+    if (!room || room.players.find(p => p.id === socket.id)?.sessionId !== room.hostSessionId) return;
 
     
     const playerToKick = room.players.find(p => p.sessionId === targetSessionId);
@@ -272,9 +304,11 @@ socket.on('restartGame', ({ roomCode, sessionId }) => {
     rooms.forEach((room, code) => {
       const disconnectedPlayer = room.players.find(p => p.id === socket.id);
       if (disconnectedPlayer) {
-        const activePlayers = room.players.filter(p => p.id !== socket.id);
-        if (room.hostSessionId === disconnectedPlayer.sessionId && activePlayers.length > 0) {
-           room.hostSessionId = activePlayers[0].sessionId; 
+        room.players = room.players.filter(p => p.id !== socket.id);
+        if (room.players.length === 0) {
+          rooms.delete(code);
+        } else if (room.hostSessionId === disconnectedPlayer.sessionId) {
+           room.hostSessionId = room.players[0].sessionId; 
         }
       }
     });

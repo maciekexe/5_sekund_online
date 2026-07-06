@@ -1,11 +1,18 @@
 .board-box { 
     display: grid; 
-    grid-template-columns: repeat(5, 85px); 
-    gap: 15px; 
+    grid-template-columns: repeat(5, minmax(50px, 85px)); 
+    gap: 2vw; 
     background: rgba(255,255,255,0.02); 
     padding: 20px; 
     border-radius: 25px; 
-    border: 1px solid rgba(255,255,255,0.05); 
+    border: 1px solid rgba(255,255,255,0.05);
+    max-width: 100%;
+}
+
+@media (max-width: 600px) {
+    .board-box { padding: 10px; gap: 5px; grid-template-columns: repeat(5, minmax(40px, 1fr)); }
+    .tile { width: 100%; height: auto; aspect-ratio: 1; font-size: 0.8rem; border-radius: 8px; }
+    .pawn { width: 25px; height: 25px; }
 }
 
 .tile { 

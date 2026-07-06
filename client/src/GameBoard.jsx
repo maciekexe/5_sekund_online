@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import './GameBoard.css';
 
 const GameBoard = ({ players, targetScore }) => {
@@ -20,9 +21,10 @@ const GameBoard = ({ players, targetScore }) => {
         const tile = path.find(t => t.id === Math.min(p.position, targetScore));
         if (!tile) return null;
         return (
-          <div key={p.sessionId} className="pawn" style={{ backgroundColor: p.color, gridColumn: tile.x, gridRow: tile.y, boxShadow: `0 0 15px ${p.color}` }}>
-            {p.name.charAt(0).toUpperCase()}
-          </div>
+          <motion.div layout key={p.sessionId} className="pawn" style={{ backgroundColor: p.color, gridColumn: tile.x, gridRow: tile.y, boxShadow: `0 0 15px ${p.color}` }}
+             transition={{ type: "spring", stiffness: 300, damping: 20 }}>
+            <img src={`https://api.dicebear.com/9.x/bottts/svg?seed=${p.name}`} alt="avatar" style={{width: '90%', height: '90%', borderRadius: '50%'}} />
+          </motion.div>
         );
       })}
     </div>
