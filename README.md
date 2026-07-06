@@ -8,23 +8,23 @@ Celem projektu było przeniesienie dynamiki gry imprezowej do przeglądarki, z z
 ## ✨ Główne funkcje
 * **System Pokoi (Rooms):** Tworzenie prywatnych instancji gry chronionych 4-cyfrowym kodem PIN.
 * **Czas Rzeczywisty:** Natychmiastowa synchronizacja stanu gry, pionków na planszy i tykającego zegara za pomocą WebSockets.
-* **Integracja AI:** Pytania nie są wpisane na sztywno – generuje je na żywo model LLaMA 3 (Groq API) na podstawie wybranej przez Hosta kategorii.
-* **System Głosowania:** Kiedy czas mija, reszta graczy głosuje (Zaliczone / Skucha), decydując o ruchu pionka.
-* **Odporność na utratę sesji:** Przypadkowe odświeżenie strony na telefonie nie wyrzuca z gry – gracz płynnie wraca na swoje miejsce dzięki identyfikacji `sessionId`.
-* **Zarządzanie przez Hosta:** Host posiada uprawnienia do wyrzucania nieaktywnych graczy, pomijania pytań i resetowania gry.
+* **Integracja AI (z zabezpieczeniem):** Pytania generuje na żywo model LLaMA 3 (Groq API). Jeśli AI zawiedzie, system bezpiecznie wylosuje jedno z wielu wbudowanych pytań awaryjnych.
+* **System Głosowania:** Kiedy czas mija, reszta graczy głosuje (Zaliczone / Skucha). Przejrzysty interfejs na bieżąco pokazuje status głosowania każdego gracza (⏳ / ✅).
+* **Odporność na utratę sesji:** Przypadkowe odświeżenie strony nie wyrzuca z gry – gracz płynnie wraca na swoje miejsce dzięki identyfikacji `sessionId`.
+* **Zarządzanie przez Hosta:** Host posiada uprawnienia do wyrzucania graczy i pomijania pytań. Eventy serwerowe są silnie zabezpieczone sprzętową weryfikacją (tylko Host może wykonać te akcje).
+* **Bezpieczeństwo i Optymalizacja:** Rygorystyczna walidacja danych gracza na backendzie za pomocą Zod oraz czyszczenie z pamięci pustych pokoi (Memory Leak protection).
 
 ## 🛠️ Technologie (Tech Stack)
-* **Frontend:** React.js (Vite), CSS3 (Moduły, Grid/Flexbox)
-* **Backend:** Node.js, Express.js
+* **Frontend:** React.js (Vite), CSS3 (Moduły, Grid/Flexbox), Framer Motion (płynne animacje)
+* **Backend:** Node.js, Express.js, Zod (walidacja)
 * **Komunikacja Real-Time:** Socket.io
 * **Sztuczna Inteligencja:** Groq API (LLaMA 3 70B)
-* **Hosting:** Vercel (Frontend) & Render (Backend)
+* **Testowanie i CI/CD:** Vitest, GitHub Actions (automatyczne pipleline'y testowe po każdym Pull Request'cie)
+* **UI/UX:** DiceBear API (generowanie uroczych awatarów), react-hot-toast (nowoczesne powiadomienia)
 
 ## 🧠 Największe wyzwania techniczne 
-Podczas budowy tego projektu zmierzyłem się z kilkoma zaawansowanymi problemami architektury asynchronicznej:
-1. **Race Conditions przy timerach:** Rozwiązanie problemu nakładających się na siebie zdarzeń (np. Host klika "Pomiń Pytanie", podczas gdy stary timer dąży do zera, a API dopiero generuje nowe pytanie). Wymagało to rygorystycznego czyszczenia interwałów (`clearInterval`) przed emisją nowych stanów.
-2. **Utrata połączenia (Host Migration):** Zbudowanie mechanizmu, który nie psuje gry, gdy Host rozłączy się z serwerem. Uprawnienia ("korona") są automatycznie i płynnie przekazywane następnemu graczowi w tablicy.
-3. **Izolacja Stanu Pokojów:** Bezpieczne przechowywanie stanu wielu równoległych gier w pamięci serwera (`Map()`), tak aby zdarzenia z pokoju A nie miały wpływu na pokój B.
-
-
-
+Podczas budowy tego projektu zmierzyłem się z kilkoma zaawansowanymi problemami:
+1. **Race Conditions przy timerach:** Rozwiązanie problemu nakładających się na siebie zdarzeń (np. Host klika "Pomiń Pytanie", podczas gdy stary timer dąży do zera). Wymagało to rygorystycznego czyszczenia interwałów przed emisją nowych stanów.
+2. **Utrata połączenia (Host Migration):** Zbudowanie mechanizmu, który nie psuje gry, gdy Host rozłączy się z serwerem. Uprawnienia są automatycznie przekazywane następnemu graczowi.
+3. **Izolacja Stanu Pokojów i Bezpieczeństwo:** Bezpieczne przechowywanie stanu gier w pamięci serwera, połączone z twardym autoryzowaniem socketów, by uchronić pokoje przed złośliwymi eventami "z zewnątrz".
+4. **Płynność Interfejsu (Framer Motion):** Zastąpienie przeskakujących na kafelkach pionków płynnymi animacjami Layout Transition, dającymi naturalne wrażenie przesuwania piona po planszy fizycznej.
